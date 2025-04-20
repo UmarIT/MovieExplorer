@@ -15,25 +15,22 @@ import { MainTabParamList } from '../types/navigation';
 import { removeFavorite } from '../store/favoritesSlice';
 import { RootState } from '../store';
 import { Movie } from '../services/movieApi';
+import { useNavigation } from '@react-navigation/native';
+import { HomeStackParamList } from '../types/navigation';
 
-type FavoritesScreenNavigationProp = NativeStackNavigationProp<MainTabParamList, 'Favorites'> & {
-  navigate: (screen: 'MovieList', params: { screen: 'MovieDetails', params: { movieId: number } }) => void;
-};
+type FavoritesScreenNavigationProp = NativeStackNavigationProp<MainTabParamList, 'Favorites'>;
 
-interface FavoritesScreenProps {
-  navigation: FavoritesScreenNavigationProp;
-}
-
-const FavoritesScreen: React.FC<FavoritesScreenProps> = ({ navigation }) => {
-  const [loading, setLoading] = useState(true);
+const FavoritesScreen = () => {
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const favorites = useSelector((state: RootState) => state.favorites.movies);
   const dispatch = useDispatch();
+  const navigation = useNavigation<FavoritesScreenNavigationProp>();
 
   useEffect(() => {
-    // Simulate loading time for better UX
+    // Simulate loading time
     const timer = setTimeout(() => {
-      setLoading(false);
+      setIsLoading(false);
     }, 500);
 
     return () => clearTimeout(timer);
@@ -42,18 +39,23 @@ const FavoritesScreen: React.FC<FavoritesScreenProps> = ({ navigation }) => {
   const handleRemoveFavorite = (movieId: number) => {
     try {
       dispatch(removeFavorite(movieId));
-    } catch (error) {
-      Alert.alert('Error', 'Failed to remove from favorites. Please try again.');
+    } catch (err) {
+      setError('Failed to remove movie from favorites');
+      Alert.alert('Error', 'Failed to remove movie from favorites');
     }
+  };
+
+  const handleMoviePress = (movieId: number) => {
+    navigation.navigate('Home', {
+      screen: 'MovieDetails',
+      params: { movieId }
+    });
   };
 
   const renderFavoriteItem = ({ item }: { item: Movie }) => (
     <TouchableOpacity
       style={styles.movieCard}
-      onPress={() => navigation.navigate('MovieList', {
-        screen: 'MovieDetails',
-        params: { movieId: item.id }
-      })}
+      onPress={() => handleMoviePress(item.id)}
     >
       <Image 
         source={{ uri: item.poster }} 
@@ -73,7 +75,7 @@ const FavoritesScreen: React.FC<FavoritesScreenProps> = ({ navigation }) => {
     </TouchableOpacity>
   );
 
-  if (loading) {
+  if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#007AFF" />
